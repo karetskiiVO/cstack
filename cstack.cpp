@@ -37,23 +37,23 @@ int stackPush_ (Stack* stk, Elem_t newElem) {
     //////secure
     uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
-
+        
     CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
     //////unsecure
 
     if (stk->size < stk->capacity) {
-        CHECK(stk->errors,  stk->arr[stk->size] != POISON, LOSED_DATA);
+        CHECK(stk->errors,  stk->arr[stk->size] == POISON, LOSED_DATA);
 
         stk->arr[stk->size++] = newElem;
     } else {
-        CHECK(stk->errors,  stk->size > stk->capacity, LOSED_DATA);
+        CHECK(stk->errors,  stk->size <= stk->capacity, LOSED_DATA);
 
         if (stk->capacity == 0) {
-            stackCtor_ (stk, 1);
+            stackCtor_(stk, 1);
         } else {
-            stackCtor_ (stk, 2 * stk->capacity);
+            stackCtor_(stk, 2 * stk->capacity);
         }
-        CHECK(stk->errors,  stk->arr[stk->size] != POISON, LOSED_DATA);
+        CHECK(stk->errors,  stk->arr[stk->size] == POISON, LOSED_DATA);
 
         stk->arr[stk->size++] = newElem;
     }
@@ -137,7 +137,7 @@ int stackCtor_ (Stack* stk, const size_t len) {
 
         stk->arr = (Elem_t*)realloc(stk->arr, len * sizeof(Elem_t));
         CHECK(stk->errors, stk->arr, NULL_PTR_TO_STACK);
-        CHECK(stk->errors, stk->size > stk->capacity, STACK_OVERFLOW);
+        CHECK(stk->errors, stk->size <= stk->capacity, STACK_OVERFLOW);
 
         for(size_t i = capacitybuf; i < len; i++) {
             stk->arr[i] = POISON;
@@ -186,4 +186,44 @@ static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes) {
     }
 
     return len_in_bytes;
+}
+
+int stackDump_ (const Stack* stk, const char* stkname, const char* file, const char* funct, const int line) {
+    FILE* fout = fopen(logout, "a");
+
+    fprintf(fout, "In file: %s\tin function: %s\tin line:%d\n", file, funct, line);
+
+    fprintf(fout, "Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld hash: %lu\n", \
+                    stkname, stk, stk->errors, stk->size, stk->capacity, stk->hash);
+    fprintf(fout, "\t\tArray[%p]\n", stk->arr);
+
+    for (size_t i = 0; i < stk->capacity; i++) {
+        fprintf(fout, "\t\t");
+
+        if (i < stk->size) {
+            fprintf(fout, "*");
+        } else {
+            fprintf(fout, " ");
+        }
+
+        fprintf(fout, "[%ld]\t", i);
+        fprintf(fout, Elem_out, stk->arr[i]);
+
+        if (stk->arr[i] == POISON) {
+            fprintf(fout, " (POISON)");
+        }
+        fprintf(fout, "\n");
+    }
+
+    int err = stk->errors;
+
+    errdump(fout, err, NOT_ENOUGHT_MEMORY);
+    errdump(fout, err, STACK_OVERFLOW);
+    errdump(fout, err, ELEMENT_ISNT_EXIST);
+    errdump(fout, err, NULL_PTR_TO_STACK);
+    errdump(fout, err, LOSED_DATA);
+    errdump(fout, err, STRANGE_DATA); 
+
+    fclose(fout);
+    return 0;
 }
