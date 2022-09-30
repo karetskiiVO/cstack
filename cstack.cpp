@@ -3,143 +3,187 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
+#include <string.h>
 
-int stackCtor (Stack* stk, const size_t len) {
-    int outputStatus = 0;
+#define CHECK(derror,dusl,derrortype) (derror)|=((!(dusl))<<(derrortype))
 
-    if (stk->arr == NULL) {
-        stk->arr = (Elem_t*)calloc(len, sizeof(Elem_t));
+static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes);
 
-        if (stk->arr == NULL) {
-            outputStatus |= (1 << NOT_ENOUGHT_MEMORY);
-
-            stk->status |= outputStatus;
-            return outputStatus;
-        }
-    }
-
-    if (stk->capacity >= len) {
-        stk->status |= outputStatus;
-        return outputStatus;
-    }
-
-    stk->arr = (Elem_t*)realloc(stk->arr, len * sizeof(Elem_t));
-    stk->capacity = len;
-
-    if (stk->arr == NULL) {
-        outputStatus |= (1 << NOT_ENOUGHT_MEMORY);
-    }
-
-    stk->status |= outputStatus;
-    return outputStatus;
-}
-
-int stackPush (Stack* stk, const Elem_t in) {
-    int outputStatus = 0;
-
-    if (stk == NULL) {
-        outputStatus |= NULL_PTR_TO_STACK;
-        assert(!outputStatus && "pointers mustn't bu NULL");
-        return outputStatus;
-    }
-
-    /*if (stk->size + 1 > stk->capacity) {
-        outputStatus |= (1 << STACK_OVERFLOW);
-        stk->status |= outputStatus;
-
-        return outputStatus;
-    }*/
-
-    if (stk->size == stk->capacity) {
-        stackCtor(stk, 2 * stk->capacity + 1);
-        stk->capacity = 2 * stk->capacity + 1;
-    }
-
-    stk->arr[stk->size++] = in;
-
-    return outputStatus;
-}
-
-int stackPop (Stack* stk, Elem_t* out) {
-    int outputStatus = 0;
-
-    if (stk == NULL) {
-        outputStatus |= NULL_PTR_TO_STACK;
-        assert(!outputStatus && "pointers mustn't bu NULL");
-        return outputStatus;
-    }
-
-    if (stk->size == 0) {
-        outputStatus |= (1 << ELEMENT_ISNT_EXIST);
-        stk->status |= outputStatus;
-        return outputStatus;
-    }
-
-    *out = stk->arr[--stk->size];
-
-    if (stk->size + 1 > stk->capacity) {
-        outputStatus |= (1 << STACK_OVERFLOW);
-        stk->status |= outputStatus;
-
-        return outputStatus;
-    }
-
-    if (stk->size <= ((stk->capacity - 1) / 2 - 1) / 2) {
-        outputStatus |= stackCtor(stk, (stk->capacity - 1) / 2);
-    }
-
-    return outputStatus;
-}
-
-int stackNew (Stack* stk, const size_t len) {
-    stk->capacity = 0;
-    stk->size     = 0;
-    stk->status   = 0;
+int stackNew_ (Stack* stk, const size_t len) {
+    srand(time(NULL));
 
     stk->arr = NULL;
 
-    if (len == 0) {
-        return 0;
-    }
+    stk->marker1 = rand();
+    stk->marker2 = stk->marker1;
 
-    return stackCtor(stk, len);
+    stk->capacity = 0;
+    stk->size = 0;
+
+    stk->errors = 0;
+
+    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    return stackCtor_(stk, len);
 }
 
-int stackPrt (const Stack* stk) {
-    int outputStatus = 0;
+///stack push and stack pop
 
+int stackPush_ (Stack* stk, Elem_t newElem) {
     if (stk == NULL) {
-        outputStatus |= NULL_PTR_TO_STACK;
-        assert(!outputStatus && "pointers mustn't bu NULL");
+        return 1 << NULL_PTR_TO_STACK;
     }
 
-    printf("Stack[%p]\n\tsize:%ld\tcapacity:%ld\tstatus:%d\n", stk, stk->size, stk->capacity, stk->status);
-    for (size_t i = 0; i < stk->capacity; i++) {
-        if (i < stk->size) {
-            printf("\t\t*[%ld]\t= %d\n", i, stk->arr[i]);
+    //////secure
+    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
+
+    CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
+    //////unsecure
+
+    if (stk->size < stk->capacity) {
+        CHECK(stk->errors,  stk->arr[stk->size] != POISON, LOSED_DATA);
+
+        stk->arr[stk->size++] = newElem;
+    } else {
+        CHECK(stk->errors,  stk->size > stk->capacity, LOSED_DATA);
+
+        if (stk->capacity == 0) {
+            stackCtor_ (stk, 1);
         } else {
-            printf("\t\t [%ld]\t= %d\n", i, stk->arr[i]);
+            stackCtor_ (stk, 2 * stk->capacity);
+        }
+        CHECK(stk->errors,  stk->arr[stk->size] != POISON, LOSED_DATA);
+
+        stk->arr[stk->size++] = newElem;
+    }
+
+    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+
+    return stk->errors;
+}
+
+int stackPop_ (Stack* stk, Elem_t* pastElem) {
+    if (stk == NULL) {
+        return 1 << NULL_PTR_TO_STACK;
+    }
+
+    //////secure
+    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
+
+    CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
+    //////unsecure
+
+    CHECK(stk->errors, !stk->size, STACK_OVERFLOW);
+    CHECK(stk->errors, pastElem != NULL, STACK_OVERFLOW);
+    
+    *pastElem = NAN;
+
+    if (stk->capacity == 0 || stk->size == 0) {
+        
+    } else if (stk->capacity == 1) {
+        *pastElem = stk->arr[--stk->size];
+        stk->arr[stk->size] = POISON;
+
+        free(stk->arr);
+        stk->capacity = 0;
+
+    } else if (stk->capacity == 2) {
+        *pastElem = stk->arr[--stk->size];
+        stk->arr[stk->size] = POISON;
+
+        stackCtor_(stk, 1);
+    } else if (stk->capacity == 3) {
+        *pastElem = stk->arr[--stk->size];
+        stk->arr[stk->size] = POISON;
+    } else  {
+        *pastElem = stk->arr[--stk->size];
+        stk->arr[stk->size] = POISON;
+
+        if (stk->size * 4 <= stk->capacity) {
+            stk->capacity /= 2;
+            stackCtor_(stk, stk->capacity);
+        }
+    } 
+
+    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+
+    return stk->errors;
+}
+
+int stackCtor_ (Stack* stk, const size_t len) {    
+    if (stk == NULL) {
+        return 1 << NULL_PTR_TO_STACK;
+    }
+
+    //////secure
+    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
+
+    CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
+    //////unsecure
+
+    if (stk->arr == NULL) {
+        stk->arr = (Elem_t*)malloc(len * sizeof(Elem_t));
+        
+        CHECK(stk->errors, stk->arr, NULL_PTR_TO_STACK);
+
+        for (size_t i = 0; i < len; i++) {
+            stk->arr[i] = POISON;
+        }
+    } else {
+        size_t capacitybuf = stk->capacity;
+
+        stk->arr = (Elem_t*)realloc(stk->arr, len * sizeof(Elem_t));
+        CHECK(stk->errors, stk->arr, NULL_PTR_TO_STACK);
+        CHECK(stk->errors, stk->size > stk->capacity, STACK_OVERFLOW);
+
+        for(size_t i = capacitybuf; i < len; i++) {
+            stk->arr[i] = POISON;
         }
     }
 
-    return outputStatus;
+    stk->capacity = len;
+
+    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+
+
+    return stk->errors;
 }
 
+int stackPrint_ (const Stack* stk, const char* name) {
+    printf("Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld hash: %lu\n", \
+                    name, stk, stk->errors, stk->size, stk->capacity, stk->hash);
+    printf("\t\tArray[%p]\n", stk->arr);
 
+    for (size_t i = 0; i < stk->capacity; i++) {
+        printf("\t\t");
 
-int errorLog (const int line, const char* function, const char* file, const char* logfile) {
-    if (logfile == 0) {
-        printf("Error in %d  in %s in %s\n", line, function, file);
-        return 0;
+        if (i < stk->size) {
+            printf("*");
+        } else {
+            printf(" ");
+        }
+
+        printf("[%ld]\t", i);
+        printf(Elem_out, stk->arr[i]);
+
+        if (stk->arr[i] == POISON) {
+            printf(" (POISON)");
+        }
+        printf("\n");
     }
-    FILE* fout = fopen(logfile, "a");
 
-    fprintf(fout, "Error in %d in %s in %s\n", line, function, file);
-    fclose(fout);
-
-    return 0;
+    return stk->errors;
 }
 
+static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes) {
+    uint64_t hash = 5381;
 
+    for (size_t i = 0; i < len_in_bytes; i++) {
+        hash = ((hash << 5) + hash + *((char*)begin + i)) % UINTMAX_MAX;
+    }
 
-
+    return len_in_bytes;
+}

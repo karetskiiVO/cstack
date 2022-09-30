@@ -2,40 +2,46 @@
 #define CSTACK
 
 #include <stdio.h>
+#include <math.h>
+#include <stdint.h>
 
 extern const char* logout;
 
-#define Elem_t int
+//add extern
 
-#define CHECK ==0||errorLog(__LINE__,__PRETTY_FUNCTION__,__FILE__,logout)
+typedef double Elem_t;
+#define Elem_out "%lf"
+#define POISON (Elem_t)INFINITY
 
 typedef struct {
-    Elem_t* arr     = NULL;
-    size_t size     = 0;
-    size_t capacity = 0;
-
-    int status = 0;
+    uint64_t marker1;
+    size_t size;
+    int errors; 
+    size_t capacity;
+    uint64_t marker2;
+    Elem_t* arr;
+    uint64_t hash; 
 } Stack;
 
 enum ERRORS_ {
     NOT_ENOUGHT_MEMORY = 0,
     STACK_OVERFLOW     = 1,
     ELEMENT_ISNT_EXIST = 2,
-    NULL_PTR_TO_STACK  = 3
+    NULL_PTR_TO_STACK  = 3,
+    LOSED_DATA         = 4,
+    STRANGE_DATA       = 5
 };
 
-///////////////////////////
+int stackCtor_ (Stack* stk, const size_t len);
 
-int stackPush (Stack* stk, const Elem_t in);
+int stackNew_ (Stack* stk, const size_t len);
 
-int stackCtor (Stack* stk, const size_t len);
+int stackPush_ (Stack* stk, Elem_t newElem);
 
-int stackPop (Stack* stk, Elem_t* out);
+int stackPop_ (Stack* stk, Elem_t* pastElem);
 
-int stackNew (Stack* stk, const size_t len);
+int stackPrint_ (const Stack* stk, const char* name);
 
-int stackPrt (const Stack* stk);
 
-int errorLog (const int line, const char* function, const char* file, const char* logfile);
 
-#endif // cstack.h
+#endif
