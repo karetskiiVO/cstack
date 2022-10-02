@@ -8,38 +8,44 @@
 
 #define CHECK(derror,dusl,derrortype) (derror)|=((!(dusl))<<(derrortype))
 
+#if HASHFLAG
 static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes);
+#endif
 
 int stackNew_ (Stack* stk, const size_t len) {
     srand(time(NULL));
 
     stk->arr = NULL;
 
+#if SAVEFLAG 
     stk->marker1 = rand();
     stk->marker2 = stk->marker1;
+#endif
 
     stk->capacity = 0;
     stk->size = 0;
 
     stk->errors = 0;
 
+#if HASHFLAG
     stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+#endif
+
     return stackCtor_(stk, len);
 }
-
-///stack push and stack pop
 
 int stackPush_ (Stack* stk, Elem_t newElem) {
     if (stk == NULL) {
         return 1 << NULL_PTR_TO_STACK;
     }
 
-    //////secure
+#if HASHFLAG
     uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
-        
+#endif
+#if SAVEFLAG     
     CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
-    //////unsecure
+#endif
 
     if (stk->size < stk->capacity) {
         CHECK(stk->errors,  stk->arr[stk->size] == POISON, LOSED_DATA);
@@ -58,7 +64,9 @@ int stackPush_ (Stack* stk, Elem_t newElem) {
         stk->arr[stk->size++] = newElem;
     }
 
+#if HASHFLAG
     stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+#endif
 
     return stk->errors;
 }
@@ -68,12 +76,13 @@ int stackPop_ (Stack* stk, Elem_t* pastElem) {
         return 1 << NULL_PTR_TO_STACK;
     }
 
-    //////secure
+#if HASHFLAG
     uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
-
+#endif
+#if SAVEFLAG
     CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
-    //////unsecure
+#endif
 
     CHECK(stk->errors, !stk->size, STACK_OVERFLOW);
     CHECK(stk->errors, pastElem != NULL, STACK_OVERFLOW);
@@ -107,7 +116,9 @@ int stackPop_ (Stack* stk, Elem_t* pastElem) {
         }
     } 
 
+#if HASHFLAG
     stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+#endif
 
     return stk->errors;
 }
@@ -117,12 +128,13 @@ int stackCtor_ (Stack* stk, const size_t len) {
         return 1 << NULL_PTR_TO_STACK;
     }
 
-    //////secure
+#if HASHFLAG
     uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
-
+#endif
+#if SAVEFLAG
     CHECK(stk->errors, stk->marker1 == stk->marker2, LOSED_DATA);
-    //////unsecure
+#endif
 
     if (stk->arr == NULL) {
         stk->arr = (Elem_t*)malloc(len * sizeof(Elem_t));
@@ -146,15 +158,22 @@ int stackCtor_ (Stack* stk, const size_t len) {
 
     stk->capacity = len;
 
+#if HASHFLAG
     stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
-
+#endif
 
     return stk->errors;
 }
 
 int stackPrint_ (const Stack* stk, const char* name) {
+#if HASHFLAG
     printf("Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld hash: %lu\n", \
                     name, stk, stk->errors, stk->size, stk->capacity, stk->hash);
+#else
+    printf("Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld\n", \
+                    name, stk, stk->errors, stk->size, stk->capacity);
+#endif
+
     printf("\t\tArray[%p]\n", stk->arr);
 
     for (size_t i = 0; i < stk->capacity; i++) {
@@ -178,6 +197,7 @@ int stackPrint_ (const Stack* stk, const char* name) {
     return stk->errors;
 }
 
+#if HASHFLAG
 static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes) {
     uint64_t hash = 5381;
 
@@ -187,14 +207,21 @@ static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes) {
 
     return len_in_bytes;
 }
+#endif
 
 int stackDump_ (const Stack* stk, const char* stkname, const char* file, const char* funct, const int line) {
     FILE* fout = fopen(logout, "a");
 
     fprintf(fout, "In file: %s\tin function: %s\tin line:%d\n", file, funct, line);
 
-    fprintf(fout, "Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld hash: %lu\n", \
+#if HASHFLAG
+    printf("Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld hash: %lu\n", \
                     stkname, stk, stk->errors, stk->size, stk->capacity, stk->hash);
+#else
+    printf("Stack %s[%p]\terrors:%d\n\tsize: %ld\tcapicity: %ld\n", \
+                    stkname, stk, stk->errors, stk->size, stk->capacity);
+#endif
+
     fprintf(fout, "\t\tArray[%p]\n", stk->arr);
 
     for (size_t i = 0; i < stk->capacity; i++) {
