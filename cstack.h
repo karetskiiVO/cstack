@@ -29,7 +29,7 @@ typedef double Elem_t;
 #define POISON (Elem_t)INFINITY
 
 /**
- * @brief new type of data, whitch include stack 
+ * @brief new type of data, whitch include stack
  */
 typedef struct {
 #if SAVEFLAG
@@ -117,6 +117,9 @@ int stackDump_ (const Stack* stk, const char* stkname, const char* file, const c
 #define errdump(stream, err, typeoferr) fprintf(stream, #typeoferr);                \
 fprintf(stream, "\t\t%s\n", ((err >> typeoferr) & 1)?("ATTENTION!!!!"):("[  OK  ]"))
 
+/**
+ * @brief use this to call function in svefull mode
+ */
 #define stackCtor(stk, len) stackCtor_(&(stk), (len)) && stackDump(stk)
 #define stackNew(stk, len)  stackNew_ (&(stk), (len)) && stackDump(stk)
 #define stackPush(stk, val) stackPush_(&(stk), (val)) && stackDump(stk)
