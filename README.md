@@ -31,3 +31,5 @@ in ```cstack.h```
 
     ............
 ~~~~
+
+You can also change hash algorithm in function ```static uint64_t stackHash``` in ```cstack.cpp```.

@@ -9,7 +9,7 @@
 #define CHECK(derror,dusl,derrortype) (derror)|=((!(dusl))<<(derrortype))
 
 #if HASHFLAG
-static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes);
+static uint64_t stackHash (const void* begin, const size_t len_in_bytes);
 #endif
 
 int stackNew_ (Stack* stk, const size_t len) {
@@ -28,7 +28,7 @@ int stackNew_ (Stack* stk, const size_t len) {
     stk->errors = 0;
 
 #if HASHFLAG
-    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    stk->hash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
 #endif
 
     return stackCtor_(stk, len);
@@ -40,7 +40,7 @@ int stackPush_ (Stack* stk, Elem_t newElem) {
     }
 
 #if HASHFLAG
-    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    uint64_t bufhash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
 #endif
 #if SAVEFLAG     
@@ -65,7 +65,7 @@ int stackPush_ (Stack* stk, Elem_t newElem) {
     }
 
 #if HASHFLAG
-    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    stk->hash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
 #endif
 
     return stk->errors;
@@ -77,7 +77,7 @@ int stackPop_ (Stack* stk, Elem_t* pastElem) {
     }
 
 #if HASHFLAG
-    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    uint64_t bufhash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
 #endif
 #if SAVEFLAG
@@ -117,7 +117,7 @@ int stackPop_ (Stack* stk, Elem_t* pastElem) {
     } 
 
 #if HASHFLAG
-    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    stk->hash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
 #endif
 
     return stk->errors;
@@ -129,7 +129,7 @@ int stackCtor_ (Stack* stk, const size_t len) {
     }
 
 #if HASHFLAG
-    uint64_t bufhash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    uint64_t bufhash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
     CHECK(stk->errors, stk->hash == bufhash, LOSED_DATA);
 #endif
 #if SAVEFLAG
@@ -159,7 +159,7 @@ int stackCtor_ (Stack* stk, const size_t len) {
     stk->capacity = len;
 
 #if HASHFLAG
-    stk->hash = gnu_hash(stk->arr, stk->size * sizeof(Elem_t));
+    stk->hash = stackHash(stk->arr, stk->size * sizeof(Elem_t));
 #endif
 
     return stk->errors;
@@ -198,7 +198,7 @@ int stackPrint_ (const Stack* stk, const char* name) {
 }
 
 #if HASHFLAG
-static uint64_t gnu_hash (const void* begin, const size_t len_in_bytes) {
+static uint64_t stackHash (const void* begin, const size_t len_in_bytes) {
     uint64_t hash = 5381;
 
     for (size_t i = 0; i < len_in_bytes; i++) {
