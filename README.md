@@ -19,7 +19,7 @@ in ```cstack.h```
     ............
 ~~~~
 
-#### Compile with Has-protaction
+#### Compile with Has-protection
 
 in ```cstack.h```
 ~~~~
