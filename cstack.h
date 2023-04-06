@@ -4,9 +4,9 @@
 #define SAVEFLAG 0
 #define HASHFLAG 0
 
-#include <stdio.h>
-#include <math.h>
-#include <stdint.h>
+    #include <stdio.h>
+    #include <math.h>
+    #include <stdint.h>
 
 extern const char* logout;
 
